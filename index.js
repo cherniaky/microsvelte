@@ -14,7 +14,7 @@ fs.writeFileSync('./app.js', js, 'utf-8');
 function parse(content) {
     let i = 0;
     const ast = {};
-    ast.html = parseFragments(() => i < content.length);
+    ast.html = parseFragments(() => i < content.length - 1);
 
     return ast;
 
@@ -135,152 +135,151 @@ function parse(content) {
 }
 
 function analyse(ast) {
-  const result = {
-    variables: new Set(),
-    willChange: new Set(),
-    willUseInTemplate: new Set(),
-  };
+    const result = {
+        variables: new Set(),
+        willChange: new Set(),
+        willUseInTemplate: new Set(),
+    };
 
-  const { scope: rootScope, map } = periscopic.analyze(ast.script);
-  result.variables = new Set(rootScope.declarations.keys());
-  result.rootScope = rootScope;
-  result.map = map;
+    const { scope: rootScope, map } = periscopic.analyze(ast.script);
+    result.variables = new Set(rootScope.declarations.keys());
+    result.rootScope = rootScope;
+    result.map = map;
 
-  let currentScope = rootScope;
-  estreewalker.walk(ast.script, {
-    enter(node) {
-      if (map.has(node)) currentScope = map.get(node);
-      if (
-        node.type === 'UpdateExpression' &&
-        currentScope.find_owner(node.argument.name) === rootScope
-      ) {
-        result.willChange.add(node.argument.name);
-      }
-    },
-    leave(node) {
-      if (map.has(node)) currentScope = currentScope.parent;
-    }
-  });
-
-  function traverse(fragment) {
-    switch(fragment.type) {
-      case 'Element':
-        fragment.children.forEach(child => traverse(child));
-        fragment.attributes.forEach(attribute => traverse(attribute));
-        break;
-      case 'Attribute':
-        result.willUseInTemplate.add(fragment.value.name);
-        break;
-      case 'Expression':
-        result.willUseInTemplate.add(fragment.expression.name);
-        break;
-    }
-  }
-  ast.html.forEach(fragment => traverse(fragment));
-
-  return result;    
-}
-
-function generate(ast, analysis) {
-  const code = {
-    variables: [],
-    create: [],
-    update: [],
-    destroy: [],
-  };
-
-  let counter = 1;
-  function traverse(node, parent) {
-    switch(node.type) {
-      case 'Element':{
-        const variableName = `${node.name}_${counter++}`;
-        code.variables.push(variableName);
-        code.create.push(
-          `${variableName} = document.createElement('${node.name}');`
-        )
-        node.attributes.forEach(attribute => {
-          traverse(attribute, variableName);
-        });
-        node.children.forEach(child => {
-          traverse(child, variableName);
-        });
-        code.create.push(`${parent}.appendChild(${variableName})`);
-        code.destroy.push(`${parent}.removeChild(${variableName})`);
-        break;
-      }
-      case 'Text': {
-        const variableName = `txt_${counter++}`;
-        code.variables.push(variableName);
-        code.create.push(
-          `${variableName} = document.createTextNode('${node.value}')`
-        );
-        code.create.push(`${parent}.appendChild(${variableName})`);
-        break;
-      }
-      case 'Attribute': {
-        if (node.name.startsWith('on:')) {
-          const eventName = node.name.slice(3);
-          const eventHandler = node.value.name;
-          code.create.push(
-            `${parent}.addEventListener('${eventName}', ${eventHandler});`
-          );
-          code.destroy.push(
-            `${parent}.removeEventListener('${eventName}', ${eventHandler});`
-          );
+    let currentScope = rootScope;
+    estreewalker.walk(ast.script, {
+        enter(node) {
+            if (map.has(node)) currentScope = map.get(node);
+            if (
+                node.type === 'UpdateExpression' &&
+                currentScope.find_owner(node.argument.name) === rootScope
+            ) {
+                result.willChange.add(node.argument.name);
+            }
+        },
+        leave(node) {
+            if (map.has(node)) currentScope = currentScope.parent;
         }
-        break;
-      }
-      case 'Expression':{
-        const variableName = `txt_${counter++}`;
-        const expression = node.expression.name;
-        code.variables.push(variableName);
-        code.create.push(
-          `${variableName} = document.createTextNode(${expression})`
-        );
-        code.create.push(`${parent}.appendChild(${variableName});`);
-        if (analysis.willChange.has(node.expression.name)) {
-          code.update.push(`if (changed.includes('${expression}')) {
+    });
+
+    function traverse(fragment) {
+        switch (fragment.type) {
+            case 'Element':
+                fragment.children.forEach(child => traverse(child));
+                fragment.attributes.forEach(attribute => traverse(attribute));
+                break;
+            case 'Attribute':
+                result.willUseInTemplate.add(fragment.value.name);
+                break;
+            case 'Expression':
+                result.willUseInTemplate.add(fragment.expression.name);
+                break;
+        }
+    }
+    ast.html.forEach(fragment => traverse(fragment));
+
+    return result;
+}
+function generate(ast, analysis) {
+    const code = {
+        variables: [],
+        create: [],
+        update: [],
+        destroy: [],
+    };
+
+    let counter = 1;
+    function traverse(node, parent) {
+        switch (node.type) {
+            case 'Element': {
+                const variableName = `${node.name}_${counter++}`;
+                code.variables.push(variableName);
+                code.create.push(
+                    `${variableName} = document.createElement('${node.name}');`
+                )
+                node.attributes.forEach(attribute => {
+                    traverse(attribute, variableName);
+                });
+                node.children.forEach(child => {
+                    traverse(child, variableName);
+                });
+                code.create.push(`${parent}.appendChild(${variableName})`);
+                code.destroy.push(`${parent}.removeChild(${variableName})`);
+                break;
+            }
+            case 'Text': {
+                const variableName = `txt_${counter++}`;
+                code.variables.push(variableName);
+                code.create.push(
+                    `${variableName} = document.createTextNode('${node.value}')`
+                );
+                code.create.push(`${parent}.appendChild(${variableName})`);
+                break;
+            }
+            case 'Attribute': {
+                if (node.name.startsWith('on:')) {
+                    const eventName = node.name.slice(3);
+                    const eventHandler = node.value.name;
+                    code.create.push(
+                        `${parent}.addEventListener('${eventName}', ${eventHandler});`
+                    );
+                    code.destroy.push(
+                        `${parent}.removeEventListener('${eventName}', ${eventHandler});`
+                    );
+                }
+                break;
+            }
+            case 'Expression': {
+                const variableName = `txt_${counter++}`;
+                const expression = node.expression.name;
+                code.variables.push(variableName);
+                code.create.push(
+                    `${variableName} = document.createTextNode(${expression})`
+                );
+                code.create.push(`${parent}.appendChild(${variableName});`);
+                if (analysis.willChange.has(node.expression.name)) {
+                    code.update.push(`if (changed.includes('${expression}')) {
             ${variableName}.data = ${expression};
           }`);
+                }
+                break;
+            }
         }
-        break;
-      }
     }
-  }
 
-  ast.html.forEach(fragment => traverse(fragment, 'target'));
+    ast.html.forEach(fragment => traverse(fragment, 'target'));
 
-  const { rootScope, map } = analysis;
-  let currentScope = rootScope;
-  estreewalker.walk(ast.script, {
-    enter(node) {
-      if (map.has(node)) currentScope = map.get(node);
-      if (
-        node.type === 'UpdateExpression' &&
-        currentScope.find_owner(node.argument.name) === rootScope &&
-        analysis.willUseInTemplate.has(node.argument.name)
-      ) {
-        this.replace({
-          type: 'SequenceExpression',
-          expressions: [
-            node,
-            acorn.parseExpressionAt(
-              `lifecycle.update(['${node.argument.name}'])`,
-              0,
-              {
-                ecmaVersion: 2022,
-              }
-            )
-          ]
-        })
-        this.skip();
-      }
-    },
-    leave(node) {
-      if (map.has(node)) currentScope = currentScope.parent;
-    }
-  });
-  return `
+    const { rootScope, map } = analysis;
+    let currentScope = rootScope;
+    estreewalker.walk(ast.script, {
+        enter(node) {
+            if (map.has(node)) currentScope = map.get(node);
+            if (
+                node.type === 'UpdateExpression' &&
+                currentScope.find_owner(node.argument.name) === rootScope &&
+                analysis.willUseInTemplate.has(node.argument.name)
+            ) {
+                this.replace({
+                    type: 'SequenceExpression',
+                    expressions: [
+                        node,
+                        acorn.parseExpressionAt(
+                            `lifecycle.update(['${node.argument.name}'])`,
+                            0,
+                            {
+                                ecmaVersion: 2022,
+                            }
+                        )
+                    ]
+                })
+                this.skip();
+            }
+        },
+        leave(node) {
+            if (map.has(node)) currentScope = currentScope.parent;
+        }
+    });
+    return `
     export default function() {
       ${code.variables.map(v => `let ${v};`).join('\n')}
       ${escodegen.generate(ast.script)}

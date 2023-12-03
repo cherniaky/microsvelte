@@ -9,5 +9,11 @@
     "escodegen": "^2.0.0",
     "estree-walker": "^3.0.1",
     "periscopic": "^3.0.4"
-  }
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "description": ""
 }
