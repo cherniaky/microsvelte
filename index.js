@@ -108,7 +108,6 @@ function parse(content) {
         return js;
     }
 
-    // return `true` or `false` if the character pointing by `i` matches the string
     function match(str) {
         return content.slice(i, i + str.length) === str;
     }
@@ -333,6 +332,7 @@ function generate(ast, analysis) {
                     `
 }
 
+// rely on ast being global
 function extract_names(jsNode, result = []) {
     switch (jsNode.type) {
         case 'Identifier':
@@ -341,6 +341,29 @@ function extract_names(jsNode, result = []) {
         case 'BinaryExpression':
             extract_names(jsNode.left, result);
             extract_names(jsNode.right, result);
+            break;
+        case 'CallExpression':
+            extract_names(jsNode.callee, result)
+            jsNode.arguments.forEach(arg => extract_names(arg, result));
+
+            estreewalker.walk(ast.script, {
+                enter(nodeFunction) {
+                    if ((nodeFunction.type === 'FunctionDeclaration' || nodeFunction.type === 'VariableDeclarator') &&
+                        nodeFunction.id.name === jsNode.callee.name) {
+
+                        estreewalker.walk(nodeFunction, {
+                            enter(node) {
+                                if (
+                                    node.type === 'Identifier'
+                                ) {
+                                    result.push(node.name);
+                                }
+                            },
+                        });
+                    }
+                },
+            });
+
             break;
     }
     return result;
