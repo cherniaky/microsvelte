@@ -415,7 +415,96 @@ function generate(ast, analysis) {
 }
 
 function generateSSR(ast, analysis) {
-        
+    const code = {
+        variables: [],
+        reactiveDeclarations: [],
+        template: {
+            expressions: [],
+            quasis: [],
+        },
+    };
+
+    let templateString = '';
+    function addString(str) {
+        templateString += str;
+    }
+    function addExpressions(expression) {
+        code.template.quasis.push(templateString);
+        templateString = '';
+        code.template.expressions.push(expression);
+    }
+
+    function traverse(node) {
+        switch (node.type) {
+            case 'Element': {
+                addString(`<${node.name}`);
+                node.attributes.forEach((attribute) => {
+                    traverse(attribute);
+                });
+                addString('>');
+                node.children.forEach((child) => {
+                    traverse(child);
+                });
+                addString(`</${node.name}>`);
+                break;
+            }
+            case 'Text': {
+                addString(node.value);
+                break;
+            }
+            case 'Attribute': {
+                break;
+            }
+            case 'Expression': {
+                addExpressions(node.expression);
+                break;
+            }
+        }
+    }
+
+    ast.html.forEach((fragment) => traverse(fragment));
+
+    code.template.quasis.push(templateString);
+
+    analysis.reactiveDeclarations.sort((rd1, rd2) => {
+        if (rd1.assignees.some((assignee) => rd2.dependencies.includes(assignee))) {
+            return -1;
+        }
+
+        if (rd2.assignees.some((assignee) => rd1.dependencies.includes(assignee))) {
+            return 1;
+        }
+
+        return rd1.index - rd2.index;
+    });
+
+    analysis.reactiveDeclarations.forEach(
+        ({ node, index, assignees, dependencies }) => {
+            code.reactiveDeclarations.push(escodegen.generate(node));
+            assignees.forEach((assignee) => code.variables.push(assignee));
+        }
+    );
+
+    const templateLiteral = {
+        type: 'TemplateLiteral',
+        expressions: code.template.expressions,
+        quasis: code.template.quasis.map((str) => ({
+            type: 'TemplateElement',
+            value: {
+                raw: str,
+                cooked: str,
+            },
+        })),
+    };
+
+    return `
+    export default function() {
+      ${code.variables.map((v) => `let ${v};`).join('\n')}
+      ${escodegen.generate(ast.script)}
+      ${code.reactiveDeclarations.join('\n')}
+      return ${escodegen.generate(templateLiteral)};
+    }
+  `;
 }
 
 // rely on ast being global
