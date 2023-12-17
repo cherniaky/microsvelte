@@ -4,12 +4,15 @@ import * as periscopic from 'periscopic';
 import * as estreewalker from 'estree-walker';
 import * as escodegen from 'escodegen';
 
+const compileTarget = 'ssr';
 const content = fs.readFileSync('./app.svelte', 'utf-8');
 const ast = parse(content);
 const analysis = analyse(ast);
-const js = generate(ast, analysis);
+const js = compileTarget === 'ssr' ?
+    generateSSR(ast, analysis)
+    : generate(ast, analysis);
 
-fs.writeFileSync('./app.js', js, 'utf-8');
+fs.writeFileSync(`./${compileTarget}.js`, js, 'utf-8');
 
 function parse(content) {
     let i = 0;
@@ -409,6 +412,10 @@ function generate(ast, analysis) {
                         return lifecycle;
                     }
                     `
+}
+
+function generateSSR(ast, analysis) {
+        
 }
 
 // rely on ast being global
