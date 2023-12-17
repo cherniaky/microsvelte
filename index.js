@@ -3,7 +3,6 @@ import * as acorn from 'acorn';
 import * as periscopic from 'periscopic';
 import * as estreewalker from 'estree-walker';
 import * as escodegen from 'escodegen';
-import { on } from 'events';
 
 const content = fs.readFileSync('./app.svelte', 'utf-8');
 const ast = parse(content);
