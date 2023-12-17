@@ -416,7 +416,10 @@ function generate(ast, analysis) {
 
       var lifecycle = {
                             create(target) {
-                                const should_hydrate = target.childNodes.length > 0;
+                                const internal_nodes = target.childNodes;
+                                const should_hydrate = new Array(...internal_nodes).some(node => node.nodeName !== '#text' && node.nodeName !== 'SCRIPT' 
+                                    && node.nodeName !== 'STYLE' && node.nodeName !== 'IFRAME');
+
           ${code.create.join('\n')}
                             },
                             update(changed) {
