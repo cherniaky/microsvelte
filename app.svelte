@@ -1,14 +1,15 @@
 <script>
-  let counter = 0;
-  let value = 2;
+  let counter = 5;
+  
   const increment = () => {counter += 1};
-  const incrementValue = () => {value += 1};
   const decrement = () => counter--;
-  const display = () => counter;
-  function two(){ return value};
+
+  $: quadruple = double * 2;
+  $: double = counter * 2;
+
 </script>
 
 <button on:click={decrement}>Decrement</button>
-<div>{display()* two()}</div>
+<div>{counter} * 2 = {double}</div>
+<div>{double} * 2 = {quadruple}</div>
 <button on:click={increment}>Increment</button>
-<button on:click={incrementValue}>Increment Value</button>

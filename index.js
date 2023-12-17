@@ -3,6 +3,7 @@ import * as acorn from 'acorn';
 import * as periscopic from 'periscopic';
 import * as estreewalker from 'estree-walker';
 import * as escodegen from 'escodegen';
+import { on } from 'events';
 
 const content = fs.readFileSync('./app.svelte', 'utf-8');
 const ast = parse(content);
@@ -140,10 +141,40 @@ function analyse(ast) {
         willUseInTemplate: new Set(),
     };
 
-    const { scope: rootScope, map } = periscopic.analyze(ast.script);
+    const { scope: rootScope, map, globals } = periscopic.analyze(ast.script);
     result.variables = new Set(rootScope.declarations.keys());
     result.rootScope = rootScope;
     result.map = map;
+
+    const reactiveDeclarations = [];
+    const toRemove = new Set();
+    ast.script.body.forEach((node, index) => {
+        if (node.type === 'LabeledStatement' && node.label.name === '$') {
+            toRemove.add(node);
+            const body = node.body;
+            const left = body.expression.left;
+            const right = body.expression.right;
+            const dependencies = [];
+
+            estreewalker.walk(right, {
+                enter(node) {
+                    if (node.type === 'Identifier') {
+                        dependencies.push(node.name);
+                    }
+                },
+            });
+            result.willChange.add(left.name);
+            const reactiveDeclaration = {
+                assignees: [left.name],
+                dependencies: dependencies,
+                node: body,
+                index,
+            };
+            reactiveDeclarations.push(reactiveDeclaration);
+        }
+    });
+    ast.script.body = ast.script.body.filter((node) => !toRemove.has(node));
+    result.reactiveDeclarations = reactiveDeclarations;
 
     let currentScope = rootScope;
     estreewalker.walk(ast.script, {
@@ -155,7 +186,8 @@ function analyse(ast) {
             ) {
                 const names = periscopic.extract_names(node.type === 'UpdateExpression' ? node.argument : node.left);
                 for (const name of names) {
-                    if (currentScope.find_owner(name) === rootScope) {
+                    if (currentScope.find_owner(name) === rootScope
+                        || globals.has(name)) {
                         result.willChange.add(name);
                     }
                 }
@@ -193,6 +225,7 @@ function generate(ast, analysis) {
         create: [],
         update: [],
         destroy: [],
+        reactiveDeclarations: [],
     };
 
     let counter = 1;
@@ -296,7 +329,7 @@ function generate(ast, analysis) {
                         expressions: [
                             node,
                             acorn.parseExpressionAt(
-                                `lifecycle.update(${JSON.stringify(names)})`,
+                                `update(${JSON.stringify(names)})`,
                                 0,
                                 {
                                     ecmaVersion: 2022,
@@ -312,11 +345,58 @@ function generate(ast, analysis) {
             if (map.has(node)) currentScope = currentScope.parent;
         }
     });
+
+    analysis.reactiveDeclarations.sort((rd1, rd2) => {
+        if (rd1.assignees.some((assignee) => rd2.dependencies.includes(assignee))) {
+            return -1;
+        }
+
+        if (rd2.assignees.some((assignee) => rd1.dependencies.includes(assignee))) {
+            return 1;
+        }
+
+        return rd1.index - rd2.index;
+    });
+
+    analysis.reactiveDeclarations.forEach(
+        ({ node, assignees, dependencies }) => {
+            code.reactiveDeclarations.push(`
+              if (${JSON.stringify(
+                Array.from(dependencies)
+            )}.some(name => collectChanges.includes(name))) {
+                ${escodegen.generate(node)}
+                update(${JSON.stringify(assignees)});
+            }
+        `);
+            assignees.forEach((assignee) => code.variables.push(assignee));
+        }
+    );
+
     return `
                     export default function() {
       ${code.variables.map(v => `let ${v};`).join('\n')}
+      let collectChanges = [];
+      let updateCalled = false;
+      function update(changed) {
+        changed.forEach(c => collectChanges.push(c));
+    
+        if (updateCalled) return;
+        updateCalled = true;
+    
+        update_reactive_declarations();
+        if (typeof lifecycle !== 'undefined') lifecycle.update(collectChanges);
+        collectChanges = [];
+        updateCalled = false;
+      }
       ${escodegen.generate(ast.script)}
-                        const lifecycle = {
+
+      update(${JSON.stringify(Array.from(analysis.willChange))});
+
+      function update_reactive_declarations() {
+        ${code.reactiveDeclarations.join('\n')}
+      }
+
+      var lifecycle = {
                             create(target) {
           ${code.create.join('\n')}
                             },
