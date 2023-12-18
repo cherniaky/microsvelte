@@ -10,11 +10,8 @@ let div_7;
 let txt_8;
 let txt_9;
 let txt_10;
-let div_11;
+let button_11;
 let txt_12;
-let txt_13;
-let button_14;
-let txt_15;
 let double;
 let quadruple;
       let collectChanges = [];
@@ -36,7 +33,7 @@ const increment = () => {
 };
 const decrement = () => (counter--, update(['counter']));
 
-      update(["quadruple","double","counter"]);
+      update(["double","quadruple","counter"]);
 
       function update_reactive_declarations() {
         
@@ -82,17 +79,11 @@ if (!should_hydrate) div_7.appendChild(txt_9)
 txt_10 = should_hydrate ? div_7.childNodes[4] : document.createTextNode(quadruple)
 if (!should_hydrate) div_7.appendChild(txt_10);
 if(!should_hydrate) target.appendChild(div_7)
-div_11 = should_hydrate ? target.childNodes[3] : document.createElement('div');
-txt_12 = should_hydrate ? div_11.childNodes[0] : document.createTextNode('counter = ')
-if (!should_hydrate) div_11.appendChild(txt_12)
-txt_13 = should_hydrate ? div_11.childNodes[2] : document.createTextNode(counter)
-if (!should_hydrate) div_11.appendChild(txt_13);
-if(!should_hydrate) target.appendChild(div_11)
-button_14 = should_hydrate ? target.childNodes[4] : document.createElement('button');
-button_14.addEventListener('click', increment);
-txt_15 = should_hydrate ? button_14.childNodes[0] : document.createTextNode('Increment')
-if (!should_hydrate) button_14.appendChild(txt_15)
-if(!should_hydrate) target.appendChild(button_14)
+button_11 = should_hydrate ? target.childNodes[3] : document.createElement('button');
+button_11.addEventListener('click', increment);
+txt_12 = should_hydrate ? button_11.childNodes[0] : document.createTextNode('Increment')
+if (!should_hydrate) button_11.appendChild(txt_12)
+if(!should_hydrate) target.appendChild(button_11)
                             },
                             update(changed) {
           if (changed.includes('counter')) {
@@ -107,18 +98,14 @@ if (changed.includes('double')) {
 if (changed.includes('quadruple')) {
                         txt_10.data = quadruple;
                     }
-if (changed.includes('counter')) {
-                        txt_13.data = counter;
-                    }
                             },
                             destroy(target) {
           button_1.removeEventListener('click', decrement);
 target.removeChild(button_1)
 target.removeChild(div_3)
 target.removeChild(div_7)
-target.removeChild(div_11)
-button_14.removeEventListener('click', increment);
-target.removeChild(button_14)
+button_11.removeEventListener('click', increment);
+target.removeChild(button_11)
                             },
                             capture_state() {
                                 return { counter,increment,decrement }

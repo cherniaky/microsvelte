@@ -64,7 +64,7 @@ wss.on('connection', (ws) => {
 
 fs.watchFile(
     path.join(fileURLToPath(import.meta.url), '../app.svelte'),
-    { interval: 0 },
+    { interval: 500 },
     () => {
         buildAppAndSSR();
         for (const ws of webSockets) {

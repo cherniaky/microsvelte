@@ -9,6 +9,6 @@ const increment = () => {
 const decrement = () => counter--;
       double = counter * 2;
 quadruple = double * 2;
-      return `<button>Decrement<!----></button><div>${ counter }<!----> * 2 = <!---->${ double }<!----></div><div>${ double }<!----> * 2 = <!---->${ quadruple }<!----></div><div>counter = <!---->${ counter }<!----></div><button>Increment<!----></button>`;
+      return `<button>Decrement<!----></button><div>${ counter }<!----> * 2 = <!---->${ double }<!----></div><div>${ double }<!----> * 2 = <!---->${ quadruple }<!----></div><button>Increment<!----></button>`;
     }
   
