@@ -2,6 +2,8 @@
 MicroSvelte is a minimalistic JavaScript project that demonstrates a custom implementation of a Svelte-like reactive UI library. It's a great starting point for understanding how reactive UI libraries work under the hood.
 
 ### Features
+- Server-Side Rendering: The project includes server-side rendering capabilities implemented in the [ssr.js](ssr.js) file. This allows for faster initial page load times and improved SEO.
+ 
 - Reactive Programming: MicroSvelte uses a reactive programming model, similar to Svelte. It allows you to write reactive statements that automatically update the DOM when the state changes.
 
 - DOM Manipulation: The project includes custom functions for creating, updating, and destroying DOM elements based on the application state.
@@ -12,13 +14,11 @@ MicroSvelte is a minimalistic JavaScript project that demonstrates a custom impl
 
 - Custom Compiler: MicroSvelte includes a custom compiler implemented in the index.js file. The compiler reads Svelte-like code from the app.svelte file, parses it into an Abstract Syntax Tree (AST), analyzes the AST, and generates JavaScript code that manipulates the DOM based on the AST.
 
-- License: MicroSvelte is licensed under the MIT License, which allows you to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software.
-
 ## Getting Started
 To get started with MicroSvelte, you need to have Node.js and npm installed on your machine. Once you have these prerequisites, you can clone the repository and install the dependencies:
 
 ```shell
-git clone https://github.com/your-repo/microsvelte.git
+git clone https://github.com/CherniakYura/microsvelte
 cd microsvelte
 npm install
 node server.js
