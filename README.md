@@ -1,5 +1,6 @@
 ## MicroSvelte
 MicroSvelte is a minimalistic JavaScript project that demonstrates a custom implementation of a Svelte-like reactive UI library. It's a great starting point for understanding how reactive UI libraries work under the hood.
+Repository is based on this [playlist](https://youtube.com/playlist?list=PLoKaNN3BjQX1OQmFzK9SJnFXEurm1-UxQ&si=R0TeDCUHtwxv3_bf), but with few differences like bug fixes and small features.
 
 ### Features
 - Server-Side Rendering: The project includes server-side rendering capabilities implemented in the [ssr.js](ssr.js) file. This allows for faster initial page load times and improved SEO.
