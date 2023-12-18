@@ -18,7 +18,7 @@ MicroSvelte is a minimalistic JavaScript project that demonstrates a custom impl
 To get started with MicroSvelte, you need to have Node.js and npm installed on your machine. Once you have these prerequisites, you can clone the repository and install the dependencies:
 
 ```shell
-git clone https://github.com/your-repo/microsvelte.git
+git clone https://github.com/CherniakYura/microsvelte
 cd microsvelte
 npm install
 node server.js
