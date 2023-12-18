@@ -3,6 +3,8 @@ MicroSvelte is a minimalistic JavaScript project that demonstrates a custom impl
 
 ### Features
 - Server-Side Rendering: The project includes server-side rendering capabilities implemented in the [ssr.js](ssr.js) file. This allows for faster initial page load times and improved SEO.
+
+- Hot Module Reloading(HMR): With HMR, you can make changes to your code and see those changes reflected in the browser almost instantaneously. This can lead to faster development cycles and more frequent iteration on your code.
  
 - Reactive Programming: MicroSvelte uses a reactive programming model, similar to Svelte. It allows you to write reactive statements that automatically update the DOM when the state changes.
 
@@ -22,9 +24,10 @@ git clone https://github.com/CherniakYura/microsvelte
 cd microsvelte
 npm install
 node server.js
+# open http://localhost:8000/
 ```
 
-After installing the dependencies, you can start exploring the code. The main entry point of the application is the [server.js](server.js) file.
+After installing the dependencies, you can start exploring the code. The main entry point of the application is the [server.js](server.js) file. It will react to changes in [app.svelte](app.svelte) and refresh app using HMR. 
 
 Please note that this project is a demonstration of a custom implementation of a Svelte-like library and is not intended for production use.
 
